@@ -1,0 +1,79 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.env/
+.venv/
+
+# =========================
+# FastAPI / Runtime
+# =========================
+*.log
+*.pid
+*.sqlite3
+
+# =========================
+# Jupyter / Dev Tools
+# =========================
+.ipynb_checkpoints/
+*.ipynb
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Build / Cache
+# =========================
+build/
+dist/
+*.egg-info/
+
+# =========================
+# Data (สำคัญมาก!)
+# =========================
+storage/raw/*
+storage/processed/*
+!storage/raw/.keep
+!storage/processed/.keep
+
+# =========================
+# Parquet / CSV / Export
+# =========================
+*.parquet
+*.csv
+*.tsv
+*.xlsx
+
+# =========================
+# Environment Config
+# =========================
+.env
+.env.*
+
+# =========================
+# VSCode / IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Testing / Coverage
+# =========================
+.coverage
+htmlcov/
+.pytest_cache/
+
+# =========================
+# Mac/Linux temp
+# =========================
+*.swp
+*.swo
+*~
