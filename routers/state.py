@@ -1,1 +1,0 @@
-LATEST_FILE = {"raw_path": None}

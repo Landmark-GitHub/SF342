@@ -1,0 +1,66 @@
+{
+  "globe": [
+    { "country": "United States", "lat": 38, "lng": -97, "count": 42 },
+    { "country": "Germany", "lat": 51, "lng": 10, "count": 26 },
+    { "country": "India", "lat": 20, "lng": 78, "count": 38 },
+    { "country": "Japan", "lat": 36, "lng": 138, "count": 21 },
+    { "country": "Brazil", "lat": -14, "lng": -51, "count": 16 }
+  ],
+  "table": [
+    {
+      "id": "a-1",
+      "country": "United States",
+      "author_name": "Ava Martinez",
+      "l1_field": "Computer Science",
+      "l2_domain": "Artificial Intelligence",
+      "subfield_name": "Machine Learning Systems",
+      "expertise_score": 9.4,
+      "paper_count": 32,
+      "papers": ["Distributed Training at Scale", "Neural System Optimization", "Applied Model Compression"]
+    },
+    {
+      "id": "a-2",
+      "country": "Germany",
+      "author_name": "Lukas Weber",
+      "l1_field": "Engineering",
+      "l2_domain": "Robotics",
+      "subfield_name": "Autonomous Navigation",
+      "expertise_score": 8.8,
+      "paper_count": 19,
+      "papers": ["Robust SLAM in Urban Scenes", "Adaptive Robot Perception"]
+    },
+    {
+      "id": "a-3",
+      "country": "India",
+      "author_name": "Priya Nair",
+      "l1_field": "Data Science",
+      "l2_domain": "NLP",
+      "subfield_name": "Domain Language Models",
+      "expertise_score": 9.1,
+      "paper_count": 27,
+      "papers": ["Efficient Language Adaptation", "Low-Resource Domain Transfer"]
+    },
+    {
+      "id": "a-4",
+      "country": "Japan",
+      "author_name": "Ren Takahashi",
+      "l1_field": "Physics",
+      "l2_domain": "Quantum Computing",
+      "subfield_name": "Quantum Error Correction",
+      "expertise_score": 8.5,
+      "paper_count": 15,
+      "papers": ["Stability in NISQ Devices", "Practical Fault-Tolerant Protocols"]
+    },
+    {
+      "id": "a-5",
+      "country": "Brazil",
+      "author_name": "Camila Santos",
+      "l1_field": "Mathematics",
+      "l2_domain": "Network Theory",
+      "subfield_name": "Graph Analytics",
+      "expertise_score": 8.3,
+      "paper_count": 14,
+      "papers": ["Sparse Graph Pattern Mining", "Resilient Network Communities"]
+    }
+  ]
+}

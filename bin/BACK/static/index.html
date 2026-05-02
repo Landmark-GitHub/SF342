@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SF342 Frontend</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f7f7f7; color: #1f2937; }
+    .card { background: white; border-radius: 10px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    input, select, button { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; }
+    button { cursor: pointer; background: #2563eb; color: white; border: none; }
+    button.secondary { background: #4b5563; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; position: sticky; top: 0; }
+    .table-wrap { max-height: 65vh; overflow: auto; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .muted { color: #6b7280; font-size: 13px; }
+    .status { margin-top: 8px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>SF342 - df_top3 Table</h2>
+
+  <div class="card">
+    <div class="row">
+      <input id="apiBase" type="text" placeholder="API Base URL" style="min-width: 280px;" />
+      <button id="checkApiBtn" class="secondary">Check API</button>
+      <span id="apiInfo" class="muted">Config API web: auto</span>
+    </div>
+    <div class="row" style="margin-top: 10px;">
+      <input id="csvFile" type="file" accept=".csv,.tsv" />
+      <button id="uploadBtn">Upload CSV</button>
+      <button id="ingestBtn" class="secondary">Run Ingest</button>
+      <span class="muted">Flow: upload -> ingest -> load df_top3</span>
+    </div>
+    <div id="status" class="status muted">Ready</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <input id="searchInput" type="text" placeholder="Search author/domain/subfield..." />
+      <select id="fieldFilter">
+        <option value="">All l1_field</option>
+      </select>
+      <button id="loadBtn">Search / Filter</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content: space-between;">
+      <strong>Table Mode: df_top3</strong>
+      <span id="rowCount" class="muted">Rows: 0</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>author_id</th>
+            <th>author_name</th>
+            <th>taxonomy_id</th>
+            <th>l1_field</th>
+            <th>l2_domain</th>
+            <th>subfield_name</th>
+            <th>expertise_score</th>
+            <th>paper_count</th>
+            <th>avg_similarity</th>
+            <th>profile</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const tbody = document.getElementById("tbody");
+    const rowCount = document.getElementById("rowCount");
+    const fieldFilter = document.getElementById("fieldFilter");
+    const apiBaseInput = document.getElementById("apiBase");
+    const apiInfo = document.getElementById("apiInfo");
+
+    function setStatus(msg) { statusEl.textContent = msg; }
+    function getApiBase() {
+      const val = (apiBaseInput.value || "").trim();
+      return val ? val.replace(/\/+$/, "") : window.location.origin;
+    }
+    function apiUrl(path) {
+      return `${getApiBase()}${path}`;
+    }
+
+    async function checkApi() {
+      const res = await fetch(apiUrl("/"));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "API check failed");
+      const modelTime = data.model_load_seconds ?? "-";
+      const taxTime = data.taxonomy_load_seconds ?? "-";
+      const totalTime = data.startup_total_seconds ?? "-";
+      apiInfo.textContent = `Config API web: ${getApiBase()} | model_load_time=${modelTime}s | taxonomy=${taxTime}s | startup=${totalTime}s`;
+      setStatus("API connected.");
+    }
+
+    async function uploadCsv() {
+      const fileInput = document.getElementById("csvFile");
+      const file = fileInput.files[0];
+      if (!file) return setStatus("Please select CSV/TSV file first.");
+
+      const formData = new FormData();
+      formData.append("file", file);
+      setStatus("Uploading...");
+      const res = await fetch(apiUrl("/upload/"), { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Upload failed");
+      setStatus("Upload success: " + data.file_name);
+    }
+
+    async function runIngest() {
+      setStatus("Running ingest...");
+      const res = await fetch(apiUrl("/ingest/"), { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Ingest failed");
+      setStatus(`Ingest work: ${data.work || "N/A"}\n` + JSON.stringify(data.timing || {}, null, 2));
+      await loadTop3();
+    }
+
+    async function loadTop3() {
+      const search = document.getElementById("searchInput").value.trim();
+      const l1Field = fieldFilter.value;
+      const params = new URLSearchParams({ search, l1_field: l1Field, limit: "500" });
+
+      setStatus("Loading df_top3...");
+      const res = await fetch(apiUrl("/ingest/top3?" + params.toString()));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Load top3 failed");
+
+      renderTable(data.data || []);
+      buildL1Filter(data.data || []);
+      rowCount.textContent = `Rows: ${data.total || 0}`;
+      setStatus("Loaded df_top3 successfully.");
+    }
+
+    function buildL1Filter(rows) {
+      const current = fieldFilter.value;
+      const values = [...new Set(rows.map(r => String(r.l1_field || "")).filter(Boolean))].sort();
+      fieldFilter.innerHTML = '<option value="">All l1_field</option>' + values
+        .map(v => `<option value="${v}">${v}</option>`)
+        .join("");
+      fieldFilter.value = values.includes(current) ? current : "";
+    }
+
+    function renderTable(rows) {
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${r.author_id ?? ""}</td>
+          <td>${r.author_name ?? ""}</td>
+          <td>${r.l1_field ?? ""}</td>
+          <td>${r.l2_domain ?? ""}</td>
+          <td>${r.subfield_name ?? ""}</td>
+          <td>${Number(r.expertise_score || 0).toFixed(3)}</td>
+          <td>${r.paper_count ?? ""}</td>
+          <td>${Number(r.avg_similarity || 0).toFixed(3)}</td>
+        </tr>
+      `).join("");
+    }
+
+    apiBaseInput.value = window.location.origin;
+    document.getElementById("checkApiBtn").addEventListener("click", () => checkApi().catch(e => setStatus("Error: " + e.message)));
+    document.getElementById("uploadBtn").addEventListener("click", () => uploadCsv().catch(e => setStatus("Error: " + e.message)));
+    document.getElementById("ingestBtn").addEventListener("click", () => runIngest().catch(e => setStatus("Error: " + e.message)));
+    document.getElementById("loadBtn").addEventListener("click", () => loadTop3().catch(e => setStatus("Error: " + e.message)));
+    checkApi().catch(() => setStatus("Set API Base URL, then click Check API."));
+  </script>
+</body>
+</html>
