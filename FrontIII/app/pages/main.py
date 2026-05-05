@@ -199,6 +199,7 @@ with col2:
         df = file_upload_com.copy()  # อัปเดต df ด้วยข้อมูลใหม่จากการอัปโหลด
         df.to_csv(DATA_PATH, index=False)  # บันทึกข้อมูลใหม่ลงไฟล์
         st.cache_data.clear()  # ล้าง cache เพื่อให้โหลดข้อมูลใหม่
+        st.rerun()
 
 # =========================
 # 🔎 FILTER
@@ -214,6 +215,7 @@ if search:
         filtered["author_name"].str.contains(search, case=False, na=False)
         | filtered["l1_field"].str.contains(search, case=False, na=False)
         | filtered["l2_domain"].str.contains(search, case=False, na=False)
+        | filtered["evidence_paper_ids"].str.contains(search, case=False, na=False)
     ]
     st.session_state.page = 1
 

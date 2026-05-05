@@ -27,13 +27,6 @@ def normalize_series(s: pd.Series) -> pd.Series:
          .str.strip()
     )
 
-import numpy as np
-import pandas as pd
-
-
-import pandas as pd
-import numpy as np
-
 def process_scopus_authors(df):
     # ป้องกันการแก้ไขข้อมูลใน DataFrame ต้นฉบับ
     df = df.copy()
@@ -126,6 +119,21 @@ def process_scopus_authors(df):
         check_corr(cn, sh, i)
         for cn, sh, i in zip(cns, shorts, orders)
     ]
+    
+    lookup = (
+        df_exp[df_exp["profile"].notna() & (df_exp["profile"] != "")]
+        .drop_duplicates(subset=["name_id"])
+        .set_index("name_id")["profile"]
+        .to_dict()
+    )
+    
+    # Map ค่ากลับลงไปเฉพาะแถวที่ยังเป็น None หรือว่าง
+    def fill_profile(row):
+        if pd.isna(row["profile"]) or row["profile"] == "":
+            return lookup.get(row["name_id"], row["profile"])
+        return row["profile"]
+    
+    df_exp["profile"] = df_exp.apply(fill_profile, axis=1)
 
     # 7. เลือกคอลัมน์ที่ต้องการและคืนค่า
     keep_columns = [
@@ -135,12 +143,6 @@ def process_scopus_authors(df):
     ]
 
     return df_exp[keep_columns].reset_index(drop=True)
-
-# --- ตัวอย่างการใช้งานร่วมกับ Streamlit ---
-# if file_upload_com is not None:
-#     df_raw = file_upload_com.copy()
-#     processed_df = process_scopus_authors(df_raw)
-#     st.write(processed_df.head())
 
 def build_ac_automaton(df_tax):
     A = ahocorasick.Automaton()
@@ -380,339 +382,3 @@ def mapping_hybrid(df_scopus, model, df_tax, tax_emb_matrix):
 
 
 
-# from sentence_transformers import SentenceTransformer
-# import torch
-# import numpy as np
-# import pandas as pd
-# import re
-# from tqdm import tqdm
-# import ahocorasick
-
-# # ── compile regex ครั้งเดียว ──────────────────────────────────────────────────
-# _RE_CLEAN   = re.compile(r"[^a-z0-9\s\-_]")
-# _RE_SPACE   = re.compile(r"\s+")
-# _RE_AUTHOR  = re.compile(r"(.+?)\s*\((\d+)\)")
-
-
-# def normalize_text(text):
-#     if pd.isna(text):
-#         return ""
-#     text = str(text).lower()
-#     text = _RE_CLEAN.sub(" ", text)
-#     text = _RE_SPACE.sub(" ", text).strip()
-#     return text
-
-
-# # ── vectorized normalize สำหรับ Series ──────────────────────────────────────
-# def normalize_series(s: pd.Series) -> pd.Series:
-#     return (
-#         s.fillna("")
-#          .str.lower()
-#          .str.replace(_RE_CLEAN, " ", regex=True)
-#          .str.replace(_RE_SPACE, " ", regex=True)
-#          .str.strip()
-#     )
-
-
-# def process_scopus_authors(df):
-#     df = df.copy()
-
-#     # ── corr_name (vectorized) ────────────────────────────────────────────────
-#     corr = df["Correspondence Address"].fillna("")
-#     has_semi = corr.str.contains(";", regex=False)
-#     first_part = corr.str.split(";").str[0].str.strip()
-#     has_dot = first_part.str.contains(".", regex=False)
-#     parts_split = first_part.str.split(".", n=1)
-
-#     df["_corr_name"] = np.where(
-#         has_semi & has_dot,
-#         parts_split.str[1].str.strip() + ", " + parts_split.str[0].str.strip(),
-#         None
-#     )
-
-#     # ── split columns (vectorized) ────────────────────────────────────────────
-#     def split_col(col):
-#         return df[col].fillna("").str.split(";").apply(
-#             lambda x: [a.strip() for a in x if isinstance(a, str) and a.strip()]
-#         )
-
-#     df["_authors_full"] = split_col("Author full names")
-#     df["_authors_short"] = split_col("Authors")
-#     df["_affiliations"]  = split_col("Affiliations")
-
-#     # ── explode + author_order ────────────────────────────────────────────────
-#     df_exp = df.explode("_authors_full").copy()
-#     df_exp["_author_order"] = df_exp.groupby(level=0).cumcount()
-
-#     # ── parse_author vectorized ───────────────────────────────────────────────
-#     af = df_exp["_authors_full"].fillna("").astype(str)
-
-#     extracted = af.str.extract(r"(.+?)\s*\((\d+)\)")   # col 0=full, 1=aid
-#     full_name = extracted[0].fillna(af)                 # fallback = raw string
-#     name_id   = extracted[1]                            # NaN ถ้าไม่มี id
-
-#     # "Last, First" → "First Last"
-#     has_comma = full_name.str.contains(",", regex=False)
-#     split_name = full_name.str.split(",", n=1)
-#     last  = split_name.str[0].str.strip()
-#     first = split_name.str[1].str.strip().fillna("")
-#     name_combined = np.where(has_comma, first + " " + last, full_name)
-
-#     df_exp["name"]    = name_combined
-#     df_exp["name_id"] = name_id.values
-
-#     # ── author_order, first_author ────────────────────────────────────────────
-#     df_exp["author_order"] = df_exp["_author_order"] + 1
-#     df_exp["first_author"] = (df_exp["_author_order"] == 0).astype(int)
-
-#     # ── profile vectorized ────────────────────────────────────────────────────
-#     def pick_by_order(lst, i):
-#         return lst[i] if isinstance(lst, list) and i < len(lst) else None
-
-#     orders = df_exp["_author_order"].tolist()
-#     affs   = df_exp["_affiliations"].tolist()
-#     df_exp["profile"] = [pick_by_order(a, i) for a, i in zip(affs, orders)]
-
-#     # ── corresponding vectorized ──────────────────────────────────────────────
-#     cns    = df_exp["_corr_name"].tolist()
-#     shorts = df_exp["_authors_short"].tolist()
-
-#     def check_corr(cn, sh_list, i):
-#         if not cn or not isinstance(cn, str):
-#             return 0
-#         if isinstance(sh_list, list) and i < len(sh_list):
-#             val = sh_list[i]
-#             if isinstance(val, str) and val:
-#                 return 1 if val.startswith(cn) else 0
-#         return 0
-
-#     df_exp["corresponding"] = [
-#         check_corr(cn, sh, i)
-#         for cn, sh, i in zip(cns, shorts, orders)
-#     ]
-
-#     keep = ["EID", "name", "name_id", "profile", "author_order",
-#             "first_author", "corresponding",
-#             "Title", "Abstract", "Author Keywords", "Index Keywords"]
-
-#     return df_exp[keep].reset_index(drop=True)
-
-
-# def build_ac_automaton(df_tax):
-#     A = ahocorasick.Automaton()
-#     for idx, kw in enumerate(df_tax["keyword_norm"].tolist()):
-#         if kw:
-#             A.add_word(f" {kw} ", (idx, kw))
-#     A.make_automaton()
-#     return A
-
-
-# def map_eid_to_taxonomy(df_scopus, model, df_tax, tax_emb_matrix):
-#     import time
-#     device = "cuda" if torch.cuda.is_available() else "cpu"
-#     model.to(device)
-
-#     if isinstance(tax_emb_matrix, torch.Tensor):
-#         tax_emb_matrix = tax_emb_matrix.to(device)  # [10000, 384]
-
-#     tax_rows_list = df_tax.to_dict("records")
-
-#     print("Building Aho-Corasick automaton...")
-#     A = build_ac_automaton(df_tax)
-
-#     source_weights_map = {
-#         "Author Keywords": 4.0,
-#         "Index Keywords":  3.5,
-#         "Title":           3.0,
-#         "Abstract":        1.5,
-#     }
-#     sw_fields = list(source_weights_map.keys())
-#     sw_vals   = list(source_weights_map.values())
-
-#     df_papers = df_scopus.drop_duplicates(subset=["EID"]).reset_index(drop=True)
-#     n_papers  = len(df_papers)
-
-#     # ── vectorized text prep ──────────────────────────────────────────────────
-#     print("Preparing paper texts...")
-#     combined = (
-#         df_papers["Title"].fillna("") + " " +
-#         df_papers["Author Keywords"].fillna("") + " " +
-#         df_papers["Index Keywords"].fillna("")
-#     )
-#     raw_texts  = normalize_series(combined).tolist()
-#     texts_norm = [f" {t} " for t in raw_texts]
-
-#     parts_df   = pd.DataFrame({k: normalize_series(df_papers[k].fillna(""))
-#                                 for k in sw_fields})
-#     parts_list = parts_df.to_dict("records")
-#     eids       = df_papers["EID"].tolist()
-
-#     # ── encode papers ─────────────────────────────────────────────────────────
-#     print(f"Encoding {n_papers} unique papers...")
-#     t = time.time()
-#     paper_embs = model.encode(
-#         raw_texts,
-#         batch_size=1024,
-#         show_progress_bar=True,
-#         convert_to_tensor=True,
-#         device=device,
-#         normalize_embeddings=True,
-#     )  # [25000, 384]
-#     print(f"  encode done: {time.time()-t:.1f}s")
-
-#     # ── STEP A: AC matching (pure Python, เก็บ sparse sw matrix) ─────────────
-#     # paper_tax_sw[row_i] = {tax_idx: source_weight}
-#     print("Running AC matching...")
-#     t = time.time()
-#     paper_tax_sw: list[dict[int, float]] = []
-
-#     for row_i in tqdm(range(n_papers), desc="🔍 AC"):
-#         parts            = parts_list[row_i]
-#         text_norm_padded = texts_norm[row_i]
-
-#         matched: dict[int, float] = {}
-#         for _, (tax_idx, kw) in A.iter(text_norm_padded):
-#             sw = max(
-#                 (w for f, w in zip(sw_fields, sw_vals) if kw in parts[f]),
-#                 default=0.0,
-#             )
-#             if sw > matched.get(tax_idx, 0.0):
-#                 matched[tax_idx] = sw
-
-#         paper_tax_sw.append(matched)
-
-#     print(f"  AC done: {time.time()-t:.1f}s")
-
-#     # ── STEP B: batched similarity ────────────────────────────────────────────
-#     # รวบ papers ที่มี match → ทำ matmul เป็น chunk แทนทีละ paper
-#     print("Computing similarities (chunked matmul)...")
-#     t = time.time()
-
-#     CHUNK = 512  # ปรับตาม VRAM
-#     results = []
-
-#     # กรอง papers ที่มี match
-#     active = [(i, paper_tax_sw[i]) for i in range(n_papers) if paper_tax_sw[i]]
-#     print(f"  active papers: {len(active):,} / {n_papers:,}")
-
-#     for chunk_start in tqdm(range(0, len(active), CHUNK), desc="⚡ Sim"):
-#         chunk = active[chunk_start: chunk_start + CHUNK]
-
-#         # หา union of tax_indices ใน chunk นี้
-#         all_tax_idx = sorted(set(ti for _, m in chunk for ti in m.keys()))
-#         tax_idx_pos = {ti: pos for pos, ti in enumerate(all_tax_idx)}
-
-#         # paper embeddings สำหรับ chunk นี้ [chunk_size, 384]
-#         p_idx   = [i for i, _ in chunk]
-#         p_embs  = paper_embs[p_idx]  # [chunk_size, 384]
-
-#         # taxonomy embeddings subset [n_tax_subset, 384]
-#         tax_sub = tax_emb_matrix[all_tax_idx]  # [n_subset, 384]
-
-#         # similarity matrix [chunk_size, n_subset]
-#         sim_mat = (p_embs @ tax_sub.T).cpu().numpy()  # matmul ครั้งเดียว
-
-#         for local_i, (row_i, matched) in enumerate(chunk):
-#             eid = eids[row_i]
-#             for tax_idx, sw_val in matched.items():
-#                 pos     = tax_idx_pos[tax_idx]
-#                 sim_val = float(sim_mat[local_i, pos])
-#                 if sim_val < 0.0:
-#                     continue
-#                 tr = tax_rows_list[tax_idx]
-#                 results.append((
-#                     eid,
-#                     tr["taxonomy_id"], tr["l1_field"], tr["l2_domain"],
-#                     tr["subfield_name"], tr["keyword"], tr["keyword_norm"],
-#                     tr["keyword_type"], tr["keyword_rank_within_subfield"],
-#                     tr["match_priority"], tr["keyword_weight"],
-#                     sw_val, sim_val,
-#                 ))
-
-#     print(f"  sim done: {time.time()-t:.1f}s")
-
-#     cols = [
-#         "EID", "taxonomy_id", "l1_field", "l2_domain", "subfield_name",
-#         "keyword", "keyword_norm", "keyword_type",
-#         "keyword_rank_within_subfield", "match_priority", "keyword_weight",
-#         "source_weight", "similarity",
-#     ]
-#     return pd.DataFrame(results, columns=cols)
-
-
-# def merge_and_score(df_authors, df_eid_tax):
-#     df = df_authors.merge(df_eid_tax, on="EID", how="inner")
-
-#     kw_type_w = {
-#         "exact_or_near_exact":       1.2,
-#         "token_or_phrase_expansion": 1.0,
-#         "domain_seed":               0.8,
-#     }
-
-#     df["paper_topic_score"] = (
-#         df["keyword_weight"] *
-#         df["match_priority"] *
-#         df["keyword_type"].map(kw_type_w).fillna(0.7) *
-#         df["source_weight"]
-#     )
-
-#     role_w = np.select(
-#         [df["first_author"] == 1, df["corresponding"] == 1],
-#         [1.0, 0.7],
-#         default=0.2,
-#     )
-#     df["expertise_score"] = df["paper_topic_score"] * role_w
-
-#     df_final = df.groupby(
-#         ["name_id", "name", "taxonomy_id", "l1_field", "l2_domain", "subfield_name"]
-#     ).agg(
-#         expertise_score      = ("expertise_score", "sum"),
-#         paper_count          = ("EID", "nunique"),
-#         first_author_papers  = ("first_author", "sum"),
-#         corresponding_papers = ("corresponding", "sum"),
-#         author_papers        = ("EID", "count"),
-#         avg_similarity       = ("similarity", "mean"),
-#         evidence_paper_ids   = ("EID",   lambda x: list(set(x))),
-#         evidence_titles      = ("Title", lambda x: list(set(x))),
-#         profile = ("profile", "first"),
-#     ).reset_index().rename(columns={"name_id": "author_id", "name": "author_name"})
-
-#     return df_final
-
-
-# def mapping_hybrid(df_scopus, model, df_tax, tax_emb_matrix):
-#     import time
-#     t0 = time.time()
-
-#     print("=" * 50)
-#     print("Step 1: map EID → taxonomy")
-#     df_eid_tax = map_eid_to_taxonomy(df_scopus, model, df_tax, tax_emb_matrix)
-#     t1 = time.time()
-#     print(f"✅ Step 1: {t1-t0:.1f}s | {len(df_eid_tax):,} rows\n")
-
-#     print("Step 2: process scopus authors")
-#     df_authors = process_scopus_authors(df_scopus)
-#     t2 = time.time()
-#     print(f"✅ Step 2: {t2-t1:.1f}s | {len(df_authors):,} rows\n")
-
-#     print("Step 3: merge + score")
-#     df_final = merge_and_score(df_authors, df_eid_tax)
-#     t3 = time.time()
-#     print(f"✅ Step 3: {t3-t2:.1f}s | {len(df_final):,} rows\n")
-
-#     # ── dedup + top3 ──────────────────────────────────────────────────────────
-#     df_final["_epids_key"] = df_final["evidence_paper_ids"].apply(tuple)
-
-#     df_top3 = (
-#         df_final
-#         .drop_duplicates(subset=["author_id", "taxonomy_id", "_epids_key"])
-#         .sort_values("expertise_score", ascending=False)
-#         .groupby(["author_id", "_epids_key"])
-#         .head(3)
-#         .drop(columns=["_epids_key"])
-#         .sort_values("taxonomy_id", ascending=True)
-#         .reset_index(drop=True)
-#     )
-
-#     print(f"🏁 Total: {time.time()-t0:.1f}s | {len(df_top3):,} rows")
-#     return df_top3

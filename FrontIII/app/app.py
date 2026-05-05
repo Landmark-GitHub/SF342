@@ -6,6 +6,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.services.data_loader import prepare_all_data
 
+st.set_page_config(page_title="ระบบวิเคราะห์ความเชี่ยวชาญ", page_icon="🔍")
+
 home_page = st.Page(
     "pages/main.py",
     title="อัปโหลดข้อมูล",

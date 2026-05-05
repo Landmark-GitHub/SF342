@@ -1,0 +1,37 @@
+# ==============================================================================
+# .dockerignore
+# ==============================================================================
+
+# --- Python Virtual Environments ---
+# ป้องกันไม่ให้ virtual environment ในเครื่องเราหลุดเข้าไปใน container
+venv/
+.venv/
+env/
+.env/
+ENV/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Version Control ---
+# ไม่เอาประวัติการแก้ไขและ Git config เข้าไปใน Container
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# --- Local Configurations & OS Files ---
+# ไฟล์ขยะจาก OS และไฟล์ config ต่างๆ
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# --- Docker Files ---
+# ไม่จำเป็นต้องก๊อปปี้ไฟล์ตั้งค่า Docker เข้าไปในตัวเอง
+Dockerfile
+docker-compose.yml
+.dockerignore

@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "8501:8501"
+
+    volumes:
+      # เก็บข้อมูลถาวร
+      - ./FrontIII/storage:/app/storage
+
+      # cache model (torch / transformers)
+      - ./FrontIII/model_cache:/app/model_cache
+
+    restart: unless-stopped

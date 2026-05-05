@@ -150,9 +150,7 @@ def file_upload(resources):
 
         # ⏱ START TIMER
         t0 = time.time()
-
         df_scopus = pd.read_csv(uploaded_file)
-
         # =========================
         # ✅ CHECK REQUIRED COLUMNS
         # =========================
@@ -160,15 +158,10 @@ def file_upload(resources):
             col for col in REQUIRED_COLUMNS
             if col not in df_scopus.columns
         ]
-
         if missing_cols:
-
             st.error("❌ ไฟล์ CSV ไม่ถูกต้อง")
-
             st.warning("Missing columns:")
-
             st.code("\n".join(missing_cols))
-
             return None
 
         st.success("✅ อัปโหลดไฟล์สำเร็จ!")
