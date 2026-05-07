@@ -68,11 +68,11 @@ page_2 = st.Page(
     icon="📊"
 )
 
-page_3 = st.Page(
-    "pages/page_3.py",
-    title="การแยกความเชี่ยวชาญ",
-    icon="🌳"
-)
+# page_3 = st.Page(
+#     "pages/page_3.py",
+#     title="การแยกความเชี่ยวชาญ",
+#     icon="🌳"
+# )
 
 # =========================================================
 # NAVIGATION
