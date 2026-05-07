@@ -94,6 +94,13 @@ if "global_data" not in st.session_state:
 
                     df.to_csv(STORAGE_PATH, index=False)
 
+                    # clear cache
+                    st.cache_data.clear()
+                    
+                    # ล้าง session เดิม
+                    if "global_data" in st.session_state:
+                        del st.session_state["global_data"]
+                        
                     st.success("✅ อัปโหลดสำเร็จ กรุณารีเฟรชหน้า")
 
                 st.stop()
