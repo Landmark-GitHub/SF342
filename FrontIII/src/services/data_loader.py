@@ -1,46 +1,109 @@
+# import streamlit as st
+# import pandas as pd
+# import os
+# import re
+
+# # STORAGE_PATH = os.path.join("FrontIII/storage", "raw_data", "data_api.csv")
+# STORAGE_PATH = [ 
+# os.path.join( 
+# "storage", 
+# "raw_data", 
+# "data_api.csv", 
+# ), 
+# r"FrontIII/storage/raw_data/data_api.csv", 
+# ]
+
+# # =========================================================
+# # LOAD RAW DATA
+# # =========================================================
+
+# # @st.cache_data
+# # def load_initial_data():
+# #     # ตรวจสอบว่ามีไฟล์อยู่จริง และไฟล์มีขนาดมากกว่า 0 bytes
+# #     if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
+# #         try:
+# #             return pd.read_csv(STORAGE_PATH)
+# #         except pd.errors.EmptyDataError:
+# #             # กรณีไฟล์มีแต่ช่องว่าง (whitespace)
+# #             return pd.DataFrame()
+
+# #     return pd.DataFrame()
+
+# @st.cache_data
+# def load_initial_data():
+
+#     if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
+#         try:
+#             df = pd.read_csv(STORAGE_PATH)
+
+#             # ล้างชื่อ column
+#             df.columns = (
+#                 df.columns
+#                 .str.strip()
+#                 .str.lower()
+#             )
+
+#             return df
+
+#         except pd.errors.EmptyDataError:
+#             return pd.DataFrame()
+
+#     return pd.DataFrame()
+
+
+
 import streamlit as st
 import pandas as pd
 import os
 import re
 
-STORAGE_PATH = os.path.join("FrontIII/storage", "raw_data", "data_api.csv")
+STORAGE_PATHS = [
+    os.path.join(
+        "storage",
+        "raw_data",
+        "data_api.csv",
+    ),
+    r"FrontIII/storage/raw_data/data_api.csv",
+]
+
+# =========================================================
+# FIND VALID PATH
+# =========================================================
+
+def get_storage_path():
+
+    for path in STORAGE_PATHS:
+        if os.path.exists(path) and os.path.getsize(path) > 0:
+            return path
+
+    raise FileNotFoundError("ไม่พบไฟล์ data_api.csv")
+
 
 # =========================================================
 # LOAD RAW DATA
 # =========================================================
 
-# @st.cache_data
-# def load_initial_data():
-#     # ตรวจสอบว่ามีไฟล์อยู่จริง และไฟล์มีขนาดมากกว่า 0 bytes
-#     if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
-#         try:
-#             return pd.read_csv(STORAGE_PATH)
-#         except pd.errors.EmptyDataError:
-#             # กรณีไฟล์มีแต่ช่องว่าง (whitespace)
-#             return pd.DataFrame()
-
-#     return pd.DataFrame()
-
 @st.cache_data
 def load_initial_data():
 
-    if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
-        try:
-            df = pd.read_csv(STORAGE_PATH)
+    storage_path = get_storage_path()
 
-            # ล้างชื่อ column
-            df.columns = (
-                df.columns
-                .str.strip()
-                .str.lower()
-            )
+    try:
+        df = pd.read_csv(storage_path)
 
-            return df
+        # ล้างชื่อ column
+        df.columns = (
+            df.columns
+            .str.strip()
+            .str.lower()
+        )
 
-        except pd.errors.EmptyDataError:
-            return pd.DataFrame()
+        return df
 
-    return pd.DataFrame()
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame()
+
+
 
 # =========================================================
 # CONTINENT KEYWORDS
