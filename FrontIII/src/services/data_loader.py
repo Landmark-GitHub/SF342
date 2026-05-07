@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import re
 
-STORAGE_PATH = os.path.join("storage", "raw_data", "data_api.csv")
+STORAGE_PATH = os.path.join("FrontIII/storage", "raw_data", "data_api.csv")
 
 # =========================================================
 # LOAD RAW DATA
