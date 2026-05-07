@@ -81,8 +81,7 @@ page_2 = st.Page(
 pg = st.navigation([
     home_page,
     page_1,
-    page_2,
-    page_3
+    page_2
 ])
 
 # =========================================================
