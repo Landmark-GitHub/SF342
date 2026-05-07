@@ -40,27 +40,6 @@ pg = st.navigation([
     page_2,
 ])
 
-
-# preload ทุก page
-# if "global_data" not in st.session_state:
-#     with st.spinner("กำลังโหลดข้อมูลระบบ..."):
-#         try:
-#             data = prepare_all_data()
-            
-#             # ตรวจสอบว่า df_raw มีข้อมูลหรือไม่
-#             if data["df_raw"].empty:
-#                 st.warning("⚠️ ไม่พบข้อมูลในระบบ กรุณาอัปโหลดไฟล์ที่หน้า 'อัปโหลดข้อมูล'")
-#                 st.session_state.global_data = data # เก็บก้อนข้อมูลว่างไว้ก่อน
-#                 st.stop() # หยุดการทำงานของหน้าเพจที่เหลือ
-#             else:
-#                 st.session_state.global_data = data
-                
-#         except Exception as e:
-#             st.error(f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {e}")
-#             st.stop()
-
-# pg.run()
-
 # preload ทุก page
 if "global_data" not in st.session_state:
 
