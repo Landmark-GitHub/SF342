@@ -3,49 +3,23 @@ import pandas as pd
 import os
 import re
 
-# =========================================================
-# ROOT PATH
-# =========================================================
-def get_data_reference_path() -> str:
-    candidates = [
-        os.path.join(
-            "storage",
-            "raw_data",
-            "data_api.csv",
-        ),
-        r"FrontIII/storage/raw_data/data_api.csv",
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            return path
-    raise FileNotFoundError("ไม่พบไฟล์ keyword_dictionary_10000.csv")
+STORAGE_PATH = os.path.join("FrontIII/storage", "raw_data", "data_api.csv")
 
 # =========================================================
 # LOAD RAW DATA
 # =========================================================
+
 @st.cache_data
 def load_initial_data():
+    # ตรวจสอบว่ามีไฟล์อยู่จริง และไฟล์มีขนาดมากกว่า 0 bytes
+    if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
+        try:
+            return pd.read_csv(STORAGE_PATH)
+        except pd.errors.EmptyDataError:
+            # กรณีไฟล์มีแต่ช่องว่าง (whitespace)
+            return pd.DataFrame()
 
-    # ถ้าไฟล์ไม่มี หรือไฟล์ว่าง
-    if not os.path.exists(get_data_reference_path()):
-        st.warning("ไม่พบไฟล์ data_api.csv")
-        return pd.DataFrame()
-
-    if os.path.getsize(get_data_reference_path()) == 0:
-        st.warning("ไฟล์ data_api.csv ว่าง")
-        return pd.DataFrame()
-
-    try:
-        df = pd.read_csv(get_data_reference_path())
-        return df
-
-    except pd.errors.EmptyDataError:
-        st.error("ไฟล์ CSV ไม่มีข้อมูล")
-        return pd.DataFrame()
-
-    except Exception as e:
-        st.error(f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {e}")
-        return pd.DataFrame()
+    return pd.DataFrame()
 
 
 # =========================================================
