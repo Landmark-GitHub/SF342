@@ -6,17 +6,7 @@ import re
 # =========================================================
 # ROOT PATH
 # =========================================================
-ROOT_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")
-)
-
-STORAGE_PATH = os.path.join(
-    ROOT_DIR,
-    "FrontIII",
-    "storage",
-    "raw_data",
-    "data_api.csv"
-)
+STORAGE_PATH = os.path.join("FrontIII", "storage", "raw_data", "data_api.csv")
 # =========================================================
 # LOAD RAW DATA
 # =========================================================
