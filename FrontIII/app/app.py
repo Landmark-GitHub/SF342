@@ -3,19 +3,35 @@ import pandas as pd
 import sys
 import os
 
+# =========================================================
+# PATH CONFIG
+# =========================================================
+
+# app/
 APP_DIR = os.path.abspath(os.path.dirname(__file__))
 
+# FrontIII/
 BASE_DIR = os.path.abspath(
     os.path.join(APP_DIR, "..")
 )
 
+# เพิ่ม root project เข้า Python path
 sys.path.append(BASE_DIR)
+
+# =========================================================
+# IMPORT
+# =========================================================
 
 from src.services.data_loader import prepare_all_data
 
+# =========================================================
+# PAGE CONFIG
+# =========================================================
+
 st.set_page_config(
     page_title="ระบบวิเคราะห์ความเชี่ยวชาญ",
-    page_icon="🔍"
+    page_icon="🔍",
+    layout="wide"
 )
 
 # =========================================================
@@ -58,6 +74,10 @@ page_3 = st.Page(
     icon="🌳"
 )
 
+# =========================================================
+# NAVIGATION
+# =========================================================
+
 pg = st.navigation([
     home_page,
     page_1,
@@ -66,7 +86,7 @@ pg = st.navigation([
 ])
 
 # =========================================================
-# LOAD DATA
+# LOAD GLOBAL DATA
 # =========================================================
 
 if "global_data" not in st.session_state:
@@ -76,6 +96,10 @@ if "global_data" not in st.session_state:
         try:
 
             data = prepare_all_data()
+
+            # =====================================================
+            # NO DATA
+            # =====================================================
 
             if data["df_raw"].empty:
 
@@ -90,28 +114,46 @@ if "global_data" not in st.session_state:
 
                 if uploaded_file is not None:
 
-                    df = pd.read_csv(uploaded_file)
+                    try:
 
-                    os.makedirs(
-                        os.path.dirname(STORAGE_PATH),
-                        exist_ok=True
-                    )
+                        df = pd.read_csv(uploaded_file)
 
-                    df.to_csv(STORAGE_PATH, index=False)
+                        # สร้างโฟลเดอร์ถ้ายังไม่มี
+                        os.makedirs(
+                            os.path.dirname(STORAGE_PATH),
+                            exist_ok=True
+                        )
 
-                    st.cache_data.clear()
+                        # save csv
+                        df.to_csv(
+                            STORAGE_PATH,
+                            index=False
+                        )
 
-                    if "global_data" in st.session_state:
-                        del st.session_state["global_data"]
+                        # clear cache
+                        st.cache_data.clear()
 
-                    st.success(
-                        "✅ อัปโหลดสำเร็จ กรุณารีเฟรชหน้า"
-                    )
+                        # clear session
+                        if "global_data" in st.session_state:
+                            del st.session_state["global_data"]
+
+                        st.success(
+                            "✅ อัปโหลดสำเร็จ กรุณารีเฟรชหน้า"
+                        )
+
+                    except Exception as upload_error:
+
+                        st.error(
+                            f"เกิดข้อผิดพลาดในการอัปโหลดไฟล์: {upload_error}"
+                        )
 
                 st.stop()
 
-            else:
-                st.session_state.global_data = data
+            # =====================================================
+            # SAVE GLOBAL DATA
+            # =====================================================
+
+            st.session_state.global_data = data
 
         except Exception as e:
 
@@ -120,6 +162,10 @@ if "global_data" not in st.session_state:
             )
 
             st.stop()
+
+# =========================================================
+# RUN APP
+# =========================================================
 
 pg.run()
 
