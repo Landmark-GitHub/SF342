@@ -6,7 +6,20 @@ import re
 # =========================================================
 # ROOT PATH
 # =========================================================
-STORAGE_PATH = os.path.join("FrontIII", "storage", "raw_data", "data_api.csv")
+def get_data_reference_path() -> str:
+    candidates = [
+        os.path.join(
+            "storage",
+            "raw_data",
+            "data_api.csv",
+        ),
+        r"FrontIII/storage/raw_data/data_api.csv",
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError("ไม่พบไฟล์ keyword_dictionary_10000.csv")
+
 # =========================================================
 # LOAD RAW DATA
 # =========================================================
@@ -14,16 +27,16 @@ STORAGE_PATH = os.path.join("FrontIII", "storage", "raw_data", "data_api.csv")
 def load_initial_data():
 
     # ถ้าไฟล์ไม่มี หรือไฟล์ว่าง
-    if not os.path.exists(STORAGE_PATH):
-        st.warning(f"ไม่พบไฟล์: {STORAGE_PATH}")
+    if not os.path.exists(get_data_reference_path()):
+        st.warning("ไม่พบไฟล์ data_api.csv")
         return pd.DataFrame()
 
-    if os.path.getsize(STORAGE_PATH) == 0:
+    if os.path.getsize(get_data_reference_path()) == 0:
         st.warning("ไฟล์ data_api.csv ว่าง")
         return pd.DataFrame()
 
     try:
-        df = pd.read_csv(STORAGE_PATH)
+        df = pd.read_csv(get_data_reference_path())
         return df
 
     except pd.errors.EmptyDataError:
