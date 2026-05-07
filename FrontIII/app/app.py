@@ -3,7 +3,11 @@ import pandas as pd
 import sys
 import os
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+APP_DIR = os.path.abspath(os.path.dirname(__file__))
+
+BASE_DIR = os.path.abspath(
+    os.path.join(APP_DIR, "..")
+)
 
 sys.path.append(BASE_DIR)
 
