@@ -3,23 +3,46 @@ import pandas as pd
 import os
 import re
 
-STORAGE_PATH = os.path.join("FrontIII/storage", "raw_data", "data_api.csv")
+# =========================================================
+# ROOT PATH
+# =========================================================
+ROOT_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
+)
+
+STORAGE_PATH = os.path.join(
+    ROOT_DIR,
+    "storage",
+    "raw_data",
+    "data_api.csv"
+)
 
 # =========================================================
 # LOAD RAW DATA
 # =========================================================
-
 @st.cache_data
 def load_initial_data():
-    # ตรวจสอบว่ามีไฟล์อยู่จริง และไฟล์มีขนาดมากกว่า 0 bytes
-    if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
-        try:
-            return pd.read_csv(STORAGE_PATH)
-        except pd.errors.EmptyDataError:
-            # กรณีไฟล์มีแต่ช่องว่าง (whitespace)
-            return pd.DataFrame()
 
-    return pd.DataFrame()
+    # ถ้าไฟล์ไม่มี หรือไฟล์ว่าง
+    if not os.path.exists(STORAGE_PATH):
+        st.warning(f"ไม่พบไฟล์: {STORAGE_PATH}")
+        return pd.DataFrame()
+
+    if os.path.getsize(STORAGE_PATH) == 0:
+        st.warning("ไฟล์ data_api.csv ว่าง")
+        return pd.DataFrame()
+
+    try:
+        df = pd.read_csv(STORAGE_PATH)
+        return df
+
+    except pd.errors.EmptyDataError:
+        st.error("ไฟล์ CSV ไม่มีข้อมูล")
+        return pd.DataFrame()
+
+    except Exception as e:
+        st.error(f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {e}")
+        return pd.DataFrame()
 
 
 # =========================================================
