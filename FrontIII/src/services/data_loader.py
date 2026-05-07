@@ -9,14 +9,35 @@ STORAGE_PATH = os.path.join("storage", "raw_data", "data_api.csv")
 # LOAD RAW DATA
 # =========================================================
 
+# @st.cache_data
+# def load_initial_data():
+#     # ตรวจสอบว่ามีไฟล์อยู่จริง และไฟล์มีขนาดมากกว่า 0 bytes
+#     if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
+#         try:
+#             return pd.read_csv(STORAGE_PATH)
+#         except pd.errors.EmptyDataError:
+#             # กรณีไฟล์มีแต่ช่องว่าง (whitespace)
+#             return pd.DataFrame()
+
+#     return pd.DataFrame()
+
 @st.cache_data
 def load_initial_data():
-    # ตรวจสอบว่ามีไฟล์อยู่จริง และไฟล์มีขนาดมากกว่า 0 bytes
+
     if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
         try:
-            return pd.read_csv(STORAGE_PATH)
+            df = pd.read_csv(STORAGE_PATH)
+
+            # ล้างชื่อ column
+            df.columns = (
+                df.columns
+                .str.strip()
+                .str.lower()
+            )
+
+            return df
+
         except pd.errors.EmptyDataError:
-            # กรณีไฟล์มีแต่ช่องว่าง (whitespace)
             return pd.DataFrame()
 
     return pd.DataFrame()
@@ -178,7 +199,26 @@ def enrich_with_continent(df):
 # =========================================================
 
 @st.cache_data
+# def get_unique_authors(df):
+
+#     return (
+#         df.sort_values(
+#             "expertise_score",
+#             ascending=False
+#         )
+#         .drop_duplicates(subset="author_id")
+#         .reset_index(drop=True)
+#     )
 def get_unique_authors(df):
+
+    df = df.copy()
+
+    # กันไม่มี column
+    if "expertise_score" not in df.columns:
+        df["expertise_score"] = 0
+
+    if "author_id" not in df.columns:
+        df["author_id"] = range(len(df))
 
     return (
         df.sort_values(
@@ -188,7 +228,6 @@ def get_unique_authors(df):
         .drop_duplicates(subset="author_id")
         .reset_index(drop=True)
     )
-
 
 # =========================================================
 # MAIN PREPARE FUNCTION
