@@ -171,7 +171,7 @@ def get_taxonomy_reference_path() -> str:
             "drive-download-20260206T091016Z-1-001",
             "keyword_dictionary_10000.csv",
         ),
-        r"SF342/Program/SF342/FrontIII/storage/drive-download-20260206T091016Z-1-001/keyword_dictionary_10000.csv",
+        r"FrontIII/storage/drive-download-20260206T091016Z-1-001/keyword_dictionary_10000.csv",
     ]
     for path in candidates:
         if os.path.exists(path):
