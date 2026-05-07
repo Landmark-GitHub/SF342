@@ -151,7 +151,7 @@ if "resources" not in st.session_state:
 # =========================
 # 📂 LOAD DATA (แก้ path)
 # =========================
-DATA_PATH = os.path.join("storage", "raw_data", "data_api.csv")
+DATA_PATH = os.path.join("FrontIII/storage", "raw_data", "data_api.csv")
 
 if not os.path.exists(DATA_PATH):
     st.error(f"❌ ไม่พบไฟล์: {DATA_PATH}")
