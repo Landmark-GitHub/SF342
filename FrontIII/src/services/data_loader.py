@@ -162,6 +162,10 @@ def enrich_with_continent(df):
 
     df = df.copy()
 
+    # ตรวจสอบว่ามี column profile หรือไม่
+    if "profile" not in df.columns:
+        df["profile"] = ""
+
     df["continent"] = df["profile"].apply(
         detect_continent
     )
