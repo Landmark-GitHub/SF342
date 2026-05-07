@@ -1,177 +1,103 @@
-import sys
+import ast
 import os
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-import streamlit as st
 import pandas as pd
-import math
-import time
-import ast
-
-ROOT_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../..")
-)
-
-if ROOT_DIR not in sys.path:
-    sys.path.append(ROOT_DIR)
-
-from src.services.loader import load_resources
-from component.upload import file_upload
-from component.detail import author_modal
+import streamlit as st
 
 st.set_page_config(layout="wide")
 
-
-# 🎨 Custom CSS สำหรับ design ที่อ่านง่าย
-st.markdown("""
-<style>
-    /* ===== Font Size ทั่วไป ===== */
-    html, body, [class*="css"] {
-        font-family: 'Sarabun', sans-serif;
-        background: #0E1117;
-        color: #F5F7FA;
-        font-size: 22px;
-        line-height: 1.7;
-    }
-    
-    /* ===== Header ===== */
-    h1 {
-        font-size: 32px !important;
-        font-weight: 600 !important;
-    }
-    h2, .stMarkdown h3 {
-        font-size: 24px !important;
-        font-weight: 500 !important;
-    }
-    
-/* ===== ปุ่ม Card นักวิจัย ===== */
-    .stButton > button {
-        font-size: 18px !important;
-        padding: 1rem 1.5rem !important;
-        border-radius: 12px !important;
-        
-        /* ใช้ตัวแปรสีจาก Theme ของ Streamlit */
-        border: 1px solid rgba(128, 128, 128, 0.2) !important; 
-        background-color: var(--secondary-background-color) !important;
-        color: var(--text-color) !important;
-        
-        transition: all 0.2s ease !important;
-        min-height: 80px !important;
-        width: 100% !important;
-    }
-
-    .stButton > button:hover {
-        border-color: #4a90d9 !important;
-        background-color: var(--background-color) !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-    }
-    
-    /* ===== Search Box ===== */
-    .stTextInput input {
-        font-size: 18px !important;
-        padding: 0.75rem 1rem !important;
-        border-radius: 10px !important;
-    }
-    
-    /* ===== Table ===== */
-    .stDataFrame {
-        font-size: 16px !important;
-    }
-    .stDataFrame th {
-        font-size: 16px !important;
-        font-weight: 600 !important;
-        background: #f5f5f5 !important;
-    }
-    .stDataFrame td {
-        padding: 0.75rem !important;
-    }
-    
-    /* ===== Status Messages ===== */
-    .stAlert {
-        font-size: 16px !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-    }
-    
-    /* ===== Number Input (Pagination) ===== */
-    .stNumberInput label {
-        font-size: 16px !important;
-    }
-    .stNumberInput input {
-        font-size: 18px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+PRIMARY = "#667eea"
+SECONDARY = "#764ba2"
 
 
-
-# =========================
-# 🚀 STARTUP LOADER (มี STEP)
-# =========================
-def startup_loader():
-    progress = st.progress(0)
-    status = st.empty()
-
-    status.info("🔄 Step 1/2: Loading model...")
-    progress.progress(30)
-
-    res = load_resources()
-
-    progress.progress(100)
-
-    if res["errors"]:
-        for e in res["errors"]:
-            status.error(e)
-        st.stop()
-
-    status.success(
-        f"✅ Ready | Model {res['model_load_seconds']}s | Tax {res['taxonomy_load_seconds']}s"
+def inject_css() -> None:
+    st.markdown(
+        f"""
+        <style>
+        html, body, [class*="css"] {{
+            font-family: "Sarabun", "Prompt", sans-serif;
+            font-family: 'Sarabun', sans-serif;
+            background: #0E1117;
+            color: #F5F7FA;
+            font-size: 22px;
+            line-height: 1.7;
+        }}
+        .hero {{
+            background: linear-gradient(135deg, {PRIMARY} 0%, {SECONDARY} 100%);
+            border-radius: 20px;
+            padding: 1.25rem 1.4rem;
+            color: white;
+            box-shadow: 0 14px 34px rgba(102, 126, 234, 0.25);
+            margin-bottom: 1rem;
+        }}
+        .glass-card {{
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 0.95rem;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.10);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            height: 100%;
+        }}
+        .glass-card:hover {{
+            transform: translateY(-4px);
+            box-shadow: 0 16px 30px rgba(95, 112, 196, 0.25);
+            border-color: rgba(102, 126, 234, 0.45);
+        }}
+        .muted-card {{
+            opacity: 0.86;
+            border-color: rgba(140, 140, 140, 0.35);
+            background: rgba(120, 120, 120, 0.09);
+        }}
+        .meta-badge {{
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.20);
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 999px;
+            padding: 0.18rem 0.65rem;
+            margin-right: 0.4rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.8rem;
+        }}
+        .taxonomy-title {{
+            font-size: 1.03rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }}
+        .scroll-chip {{
+            max-height: 155px;
+            overflow-y: auto;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 12px;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.04);
+        }}
+        @media (max-width: 900px) {{
+            .hero {{ padding: 1rem; }}
+            .glass-card {{ border-radius: 16px; }}
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
-
-    return res
-
-
-# =========================
-# 🧠 INIT RESOURCE (ครั้งเดียว)
-# =========================
-@st.cache_resource(show_spinner=False)
-def get_resources():
-    return load_resources()
-
-
-resources = get_resources()
-
-# store to session_state
-if "resources" not in st.session_state:
-    st.session_state["resources"] = resources
-
-# =========================
-# 📂 LOAD DATA (แก้ path)
-# =========================
-DATA_PATH = os.path.join("storage", "raw_data", "data_api.csv")
-
-if not os.path.exists(DATA_PATH):
-    st.error(f"❌ ไม่พบไฟล์: {DATA_PATH}")
-    st.stop()
-
-@st.cache_data(show_spinner=False)
-def load_data(path):
-    return pd.read_csv(path)
-
-df = load_data(DATA_PATH)
 
 
 def get_taxonomy_reference_path() -> str:
     candidates = [
+        r"SF342/Program/SF342/FrontIII/storage/drive-download-20260206T091016Z-1-001/keyword_dictionary_10000.csv",
         os.path.join(
             "storage",
             "drive-download-20260206T091016Z-1-001",
             "keyword_dictionary_10000.csv",
         ),
-        r"SF342/Program/SF342/FrontIII/storage/drive-download-20260206T091016Z-1-001/keyword_dictionary_10000.csv",
+        os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "storage",
+            "drive-download-20260206T091016Z-1-001",
+            "keyword_dictionary_10000.csv",
+        ),
     ]
     for path in candidates:
         if os.path.exists(path):
@@ -181,21 +107,26 @@ def get_taxonomy_reference_path() -> str:
 
 @st.cache_data(show_spinner=False)
 def load_taxonomy_data() -> pd.DataFrame:
-    tax_path = get_taxonomy_reference_path()
-    tax_df = pd.read_csv(tax_path)
-    cols = ["taxonomy_id", "l1_field", "l2_domain", "subfield_name"]
-    existing = [c for c in cols if c in tax_df.columns]
-    return tax_df[existing].drop_duplicates(subset=["taxonomy_id"])
+    path = get_taxonomy_reference_path()
+    tax_df = pd.read_csv(path)
+    keep_cols = ["taxonomy_id", "l1_field", "l2_domain", "subfield_name", "keyword_norm"]
+    existing = [col for col in keep_cols if col in tax_df.columns]
+    tax_df = tax_df[existing].copy()
+    return tax_df
 
 
 @st.cache_data(show_spinner=False)
 def prepare_taxonomy_summary(df_data: pd.DataFrame, tax_df: pd.DataFrame) -> pd.DataFrame:
+    base_tax = (
+        tax_df[["taxonomy_id", "l1_field", "l2_domain", "subfield_name"]]
+        .drop_duplicates(subset=["taxonomy_id"])
+        .copy()
+    )
     if df_data.empty:
-        out = tax_df.copy()
-        out["researcher_count"] = 0
-        out["paper_count"] = 0
-        out["has_data"] = False
-        return out
+        base_tax["researcher_count"] = 0
+        base_tax["paper_count"] = 0
+        base_tax["has_data"] = False
+        return base_tax.sort_values(["has_data", "l1_field"], ascending=[False, True]).reset_index(drop=True)
 
     agg = (
         df_data.groupby("taxonomy_id", as_index=False)
@@ -205,17 +136,18 @@ def prepare_taxonomy_summary(df_data: pd.DataFrame, tax_df: pd.DataFrame) -> pd.
         )
         .fillna(0)
     )
-    out = tax_df.merge(agg, on="taxonomy_id", how="left").fillna(0)
-    out["researcher_count"] = out["researcher_count"].astype(int)
-    out["paper_count"] = out["paper_count"].astype(int)
-    out["has_data"] = out["researcher_count"] > 0
-    return out.sort_values(
-        by=["has_data", "researcher_count", "paper_count"],
-        ascending=[False, False, False],
+    merged = base_tax.merge(agg, how="left", on="taxonomy_id")
+    merged["researcher_count"] = merged["researcher_count"].fillna(0).astype(int)
+    merged["paper_count"] = merged["paper_count"].fillna(0).astype(int)
+    merged["has_data"] = merged["researcher_count"] > 0
+    merged = merged.sort_values(
+        by=["has_data", "researcher_count", "paper_count", "l1_field", "l2_domain", "subfield_name"],
+        ascending=[False, False, False, True, True, True],
     ).reset_index(drop=True)
+    return merged
 
 
-def parse_list(value):
+def parse_list(value: Any) -> List[str]:
     if value is None or (isinstance(value, float) and np.isnan(value)):
         return []
     if isinstance(value, list):
@@ -227,165 +159,109 @@ def parse_list(value):
         parsed = ast.literal_eval(text)
         if isinstance(parsed, list):
             return [str(v) for v in parsed if str(v).strip()]
-    except (SyntaxError, ValueError):
+    except (ValueError, SyntaxError):
         pass
-    return [x.strip() for x in text.split(";") if x.strip()]
+    return [chunk.strip() for chunk in text.split(";") if chunk.strip()]
 
 
-def render_researcher_modal(row: pd.Series):
+def render_researcher_modal(row: pd.Series) -> None:
     @st.dialog("👨‍🔬 รายละเอียดนักวิจัย", width="large")
-    def _modal():
+    def _dialog() -> None:
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Expertise", f"{float(row.get('expertise_score', 0.0)):.3f}")
-        c2.metric("Paper", int(row.get("paper_count", 0)))
+        c1.metric("Expertise Score", f"{float(row.get('expertise_score', 0.0)):.3f}")
+        c2.metric("Paper Count", int(row.get("paper_count", 0)))
         c3.metric("First Author", int(row.get("first_author_papers", 0)))
         c4.metric("Corresponding", int(row.get("corresponding_papers", 0)))
 
-        for field in [
+        detail_cols = [
             "author_id",
             "author_name",
             "taxonomy_id",
             "l1_field",
             "l2_domain",
             "subfield_name",
+            "expertise_score",
+            "paper_count",
+            "first_author_papers",
+            "corresponding_papers",
             "author_papers",
             "avg_similarity",
             "profile",
-        ]:
-            st.markdown(f"**{field}:** {row.get(field, '-')}")
+            "link",
+        ]
+        view_data = {col: row.get(col, "-") for col in detail_cols}
+        st.dataframe(pd.DataFrame(view_data.items(), columns=["หัวข้อ", "ข้อมูล"]), use_container_width=True, hide_index=True)
 
-        with st.expander("📄 Evidence Titles"):
-            titles = parse_list(row.get("evidence_titles"))
+        ids = parse_list(row.get("evidence_paper_ids"))
+        titles = parse_list(row.get("evidence_titles"))
+
+        st.markdown("#### โปรไฟล์")
+        st.markdown(
+            f"""
+            <div class="glass-card">
+                {str(row.get("profile", "ไม่มีข้อมูล"))}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        link = str(row.get("link", "")).strip()
+        if link and link.lower() != "nan":
+            st.link_button("🔗 เปิดลิงก์โปรไฟล์", link, use_container_width=True)
+
+        with st.expander("📄 หลักฐานเอกสาร (Evidence Titles)"):
             if not titles:
-                st.caption("ไม่มีข้อมูล")
-            for t in titles:
-                st.markdown(f"- {t}")
+                st.info("ไม่มีชื่อบทความประกอบ")
+            for idx, t in enumerate(titles, start=1):
+                st.markdown(f"{idx}. {t}")
 
-    _modal()
+        st.markdown("#### Evidence Paper IDs")
+        if ids:
+            id_text = "<br>".join(ids)
+            st.markdown(
+                f"""
+                <div class="scroll-chip">
+                    {id_text}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            st.info("ไม่พบ Evidence Paper IDs")
 
-# =========================
-# 🧠 SESSION STATE
-# =========================
-if "selected_author" not in st.session_state:
-    st.session_state.selected_author = None
-
-if "page" not in st.session_state:
-    st.session_state.page = 1
-
-
-# 🧭 HEADER
-st.markdown("""
-<div style="
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem;
-    border-radius: 16px;
-    margin-bottom: 2rem;
-">
-    <h1 style="color: white; margin: 0; font-size: 28px;">
-        📊 ระบบวิเคราะห์ความเชี่ยวชาญจากงานวิจัย
-    </h1>
-    <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem; font-size: 18px;">
-        ค้นหาและวิเคราะห์ผู้เชี่ยวชาญตามสาขาวิจัย
-    </p>
-</div>
-""", unsafe_allow_html=True)
-col1, col2 = st.columns([3, 1])
-with col1:
-    search = st.text_input(
-        "🔍 ค้นหา", 
-        placeholder="ชื่อนักวิจัย, สาขา, โดเมน...",
-        label_visibility="collapsed"
-    )
-with col2:
-    file_upload_com = file_upload(resources)
-    if file_upload_com is not None:
-        df = file_upload_com.copy()  # อัปเดต df ด้วยข้อมูลใหม่จากการอัปโหลด
-        df.to_csv(DATA_PATH, index=False)  # บันทึกข้อมูลใหม่ลงไฟล์
-        st.cache_data.clear()  # ล้าง cache เพื่อให้โหลดข้อมูลใหม่
+    _dialog()
 
 
-# =========================
-# 🔎 FILTER
-# =========================
-filtered = df.copy()
+def render_filters(df_data: pd.DataFrame) -> pd.DataFrame:
+    c1, c2, c3, c4 = st.columns([1.1, 1.1, 1.1, 2.2])
+    fields = ["ทั้งหมด"] + sorted(df_data["l1_field"].dropna().astype(str).unique().tolist())
+    domains = ["ทั้งหมด"] + sorted(df_data["l2_domain"].dropna().astype(str).unique().tolist())
+    subs = ["ทั้งหมด"] + sorted(df_data["subfield_name"].dropna().astype(str).unique().tolist())
 
-for col in ["author_name", "l1_field", "l2_domain"]:
-    if col in filtered.columns:
-        filtered[col] = filtered[col].astype(str)
+    with c1:
+        f1 = st.selectbox("Field", fields, index=0)
+    with c2:
+        f2 = st.selectbox("Domain", domains, index=0)
+    with c3:
+        f3 = st.selectbox("Subdomain", subs, index=0)
+    with c4:
+        q = st.text_input("ค้นหา (นักวิจัย / taxonomy / keyword)", placeholder="เช่น chemistry, machine learning, ชื่อนักวิจัย")
 
-if search:
-    filtered = filtered[
-        filtered["author_name"].str.contains(search, case=False, na=False)
-        | filtered["l1_field"].str.contains(search, case=False, na=False)
-        | filtered["l2_domain"].str.contains(search, case=False, na=False)
-        | filtered["evidence_paper_ids"].str.contains(search, case=False, na=False)
-    ]
-    st.session_state.page = 1
+    filtered = df_data.copy()
+    if f1 != "ทั้งหมด":
+        filtered = filtered[filtered["l1_field"] == f1]
+    if f2 != "ทั้งหมด":
+        filtered = filtered[filtered["l2_domain"] == f2]
+    if f3 != "ทั้งหมด":
+        filtered = filtered[filtered["subfield_name"] == f3]
 
+    if q:
+        query = q.strip().lower()
+        text_cols = ["author_name", "taxonomy_id", "l1_field", "l2_domain", "subfield_name", "evidence_titles"]
+        text_df = filtered[text_cols].fillna("").astype(str)
+        mask = np.column_stack([text_df[col].str.lower().str.contains(query, regex=False) for col in text_cols]).any(axis=1)
+        filtered = filtered[mask]
 
-# =========================
-# 📄 PAGINATION
-# =========================
-page_size = 16
-total_pages = max(math.ceil(len(filtered) / page_size), 1)
-page = st.number_input(f"หน้า", 1, total_pages, value=st.session_state.page)
-st.session_state.page = page
-# แสดงข้อความบอกจำนวนหน้าและรายการ
-st.markdown(f"""
-    <div style='text-align: right; color: #64748B; font-size: 14px;'>
-        หน้า {page} จากทั้งหมด {total_pages} หน้า
-        <br>(รวม {len(filtered)} รายการ)
-    </div>
-""", unsafe_allow_html=True)
-st.session_state.page = page
-page_data = filtered.iloc[(page - 1) * page_size : page * page_size].groupby("author_name").first().reset_index()
-
-
-# =========================
-# 🧱 GRID
-# =========================
-# 🧱 GRID
-st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
-
-cols = st.columns(4, gap="medium")
-
-for i, (_, row) in enumerate(page_data.iterrows()):
-    with cols[i % 4]:
-        # Card with more info
-        author = row['author_name']
-        field = row.get('l1_field', '-')
-        
-        if st.button(
-            f"👤 {author}",
-            key=f"card_{i}",
-            use_container_width=True
-        ):
-            st.session_state.selected_author = row.to_dict()
-
-
-
-# =========================
-# 👤 MODAL FUNCTION
-# =========================
-if st.session_state.selected_author:
-    author_modal(df)
-
-# =========================
-# 📊 TABLE
-# =========================
-if len(filtered) == 0:
-    st.warning("ไม่พบข้อมูล")
-else:
-    st.dataframe(filtered, use_container_width=True)
-    
-csv_data = filtered.to_csv(index=False).encode("utf-8-sig")
-
-st.download_button(
-    label="📥 ดาวน์โหลดข้อมูล (CSV)",
-    data=csv_data,
-    file_name="data.csv",
-    mime="text/csv"
-)
+    return filtered
 
 
 def render_taxonomy_cards(summary_df: pd.DataFrame, df_filtered: pd.DataFrame) -> None:
@@ -534,9 +410,12 @@ def render_top_matches(top_df: pd.DataFrame, filtered_df: pd.DataFrame) -> None:
 
 
 def render_ai_matching(df_filtered: pd.DataFrame, summary_df: pd.DataFrame) -> None:
-    st.title("ตอนนี้ท่านทำวิจัยอะไรอยู่ครับ\n"
+    st.markdown("### 🤖 AI Research Matching Assistant")
+    st.info(
+        "ตอนนี้ท่านทำวิจัยอะไรอยู่ครับ\n"
         "บอกคร่าว ๆ ได้ไหมครับ\n"
-        "เดี๋ยวระบบจะช่วยค้นหางานวิจัยและนักวิจัยที่เกี่ยวข้องให้")
+        "เดี๋ยวระบบจะช่วยค้นหางานวิจัยและนักวิจัยที่เกี่ยวข้องให้"
+    )
     user_idea = st.text_area(
         "แนวคิดวิจัยของท่าน",
         placeholder="เช่น งานวิจัยเรื่องการใช้ AI วิเคราะห์โรคพืชจากภาพถ่าย...",
@@ -568,8 +447,61 @@ def render_ai_matching(df_filtered: pd.DataFrame, summary_df: pd.DataFrame) -> N
     top_df = ranked.sort_values("similarity", ascending=False).head(3)
     render_top_matches(top_df, df_filtered)
 
-with st.spinner("กำลังเตรียมข้อมูล taxonomy และ researcher..."):
-    tax_df = load_taxonomy_data()
-    summary_df = prepare_taxonomy_summary(df, tax_df)
 
-render_ai_matching(filtered, summary_df)
+def main() -> None:
+    inject_css()
+    st.markdown(
+        """
+        <div class="hero">
+            <h2 style="margin:0;">📌 การแยกความเชี่ยวชาญ</h2>
+            <p style="margin:0.35rem 0 0 0;">ระบบสำรวจ Taxonomy ความเชี่ยวชาญ พร้อมค้นหาและจับคู่นักวิจัยแบบอัจฉริยะ</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if "global_data" not in st.session_state:
+        st.error("ไม่พบข้อมูลกลางของระบบ (st.session_state.global_data)")
+        st.stop()
+
+    gdata = st.session_state.global_data
+    df_raw = gdata.get("df_raw", pd.DataFrame()).copy()
+    if df_raw.empty:
+        st.warning("ยังไม่มีข้อมูลนักวิจัยในระบบ กรุณาอัปโหลดข้อมูลที่หน้าแรก")
+        st.stop()
+
+    with st.spinner("กำลังเตรียมข้อมูล taxonomy และ researcher..."):
+        tax_df = load_taxonomy_data()
+        summary_df = prepare_taxonomy_summary(df_raw, tax_df)
+
+    st.sidebar.markdown("## 🧭 เมนูนำทาง")
+    section = st.sidebar.radio(
+        "เลือกส่วนที่ต้องการดู",
+        ["ทั้งหมด", "Taxonomy", "ค้นหา/Filter", "AI Matching"],
+        index=0,
+    )
+
+    filtered_df = render_filters(df_raw)
+    st.caption(f"ผลลัพธ์หลังกรอง: {len(filtered_df):,} แถวข้อมูล")
+
+    if filtered_df.empty:
+        st.markdown(
+            """
+            <div class="glass-card muted-card">
+                <h4 style="margin-top:0;">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</h4>
+                <p>ลองปรับตัวกรองใหม่ หรือเคลียร์คำค้นหาเพื่อดูข้อมูลทั้งหมด</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    if section in ("ทั้งหมด", "Taxonomy"):
+        render_taxonomy_cards(summary_df, filtered_df)
+    if section in ("ทั้งหมด", "AI Matching"):
+        st.markdown("---")
+        render_ai_matching(filtered_df, summary_df)
+
+
+if __name__ == "__main__":
+    main()

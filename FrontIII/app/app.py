@@ -27,19 +27,35 @@ page_2 = st.Page(
     icon="📊"
 )
 
+page_3 = st.Page(
+    "pages/page_3.py",
+    title="การแยกความเชี่ยวชาญ",
+    icon="🌳"
+)
+
 pg = st.navigation([
     home_page,
     page_1,
-    page_2
+    page_2,
 ])
+
 
 # preload ทุก page
 if "global_data" not in st.session_state:
-
-    with st.spinner("Loading system..."):
-
-        st.session_state.global_data = (
-            prepare_all_data()
-        )
+    with st.spinner("กำลังโหลดข้อมูลระบบ..."):
+        try:
+            data = prepare_all_data()
+            
+            # ตรวจสอบว่า df_raw มีข้อมูลหรือไม่
+            if data["df_raw"].empty:
+                st.warning("⚠️ ไม่พบข้อมูลในระบบ กรุณาอัปโหลดไฟล์ที่หน้า 'อัปโหลดข้อมูล'")
+                st.session_state.global_data = data # เก็บก้อนข้อมูลว่างไว้ก่อน
+                st.stop() # หยุดการทำงานของหน้าเพจที่เหลือ
+            else:
+                st.session_state.global_data = data
+                
+        except Exception as e:
+            st.error(f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {e}")
+            st.stop()
 
 pg.run()

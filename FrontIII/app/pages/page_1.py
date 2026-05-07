@@ -1102,15 +1102,30 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# เพิ่ม option "ทั้งหมด"
+sel_conts = ["ทั้งหมด"] + sorted(
+    fa["continent"].dropna().unique().tolist()
+)
+
 selected_tab_cont = st.selectbox(
     "เลือกทวีป",
     sel_conts
 )
 
-top_authors = (
-    fa[
+# กรองข้อมูล
+if selected_tab_cont == "ทั้งหมด":
+
+    filtered_fa = fa.copy()
+
+else:
+
+    filtered_fa = fa[
         fa["continent"] == selected_tab_cont
     ]
+
+# Top Authors
+top_authors = (
+    filtered_fa
     .sort_values(
         "expertise_score",
         ascending=False
@@ -1172,8 +1187,6 @@ if not top_authors.empty:
                 transition:all .35s ease;
             }}
 
-            /* glow */
-
             .author-card::before{{
                 content:"";
 
@@ -1209,8 +1222,6 @@ if not top_authors.empty:
                     );
             }}
 
-            /* rank */
-
             .author-rank{{
                 position:relative;
                 z-index:2;
@@ -1238,8 +1249,6 @@ if not top_authors.empty:
                     0 0 18px {continent_color}33;
             }}
 
-            /* name */
-
             .author-name{{
                 position:relative;
                 z-index:2;
@@ -1257,8 +1266,6 @@ if not top_authors.empty:
                     0 2px 10px rgba(0,0,0,.45);
             }}
 
-            /* meta */
-
             .author-meta{{
                 position:relative;
                 z-index:2;
@@ -1270,8 +1277,6 @@ if not top_authors.empty:
 
                 margin-bottom:14px;
             }}
-
-            /* score */
 
             .author-score{{
                 position:relative;
@@ -1354,7 +1359,8 @@ search_term = st.text_input(
     "ค้นหาชื่อนักวิจัยหรือสังกัด..."
 )
 
-display_df = fa[
+# เริ่มจากข้อมูลที่ถูกกรองตามทวีป
+display_df = filtered_fa[
     [
         "author_name",
         "continent",
@@ -1364,6 +1370,7 @@ display_df = fa[
     ]
 ].copy()
 
+# ค้นหา
 if search_term:
 
     display_df = display_df[
@@ -1379,6 +1386,13 @@ if search_term:
         )
     ]
 
+# เรียงคะแนนมาก -> น้อย
+display_df = display_df.sort_values(
+    "expertise_score",
+    ascending=False
+)
+
+# แสดงตาราง
 st.dataframe(
     display_df,
     use_container_width=True,

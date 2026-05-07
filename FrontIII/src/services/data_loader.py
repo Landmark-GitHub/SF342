@@ -11,12 +11,15 @@ STORAGE_PATH = os.path.join("storage", "raw_data", "data_api.csv")
 
 @st.cache_data
 def load_initial_data():
-
-    if os.path.exists(STORAGE_PATH):
-        return pd.read_csv(STORAGE_PATH)
+    # ตรวจสอบว่ามีไฟล์อยู่จริง และไฟล์มีขนาดมากกว่า 0 bytes
+    if os.path.exists(STORAGE_PATH) and os.path.getsize(STORAGE_PATH) > 0:
+        try:
+            return pd.read_csv(STORAGE_PATH)
+        except pd.errors.EmptyDataError:
+            # กรณีไฟล์มีแต่ช่องว่าง (whitespace)
+            return pd.DataFrame()
 
     return pd.DataFrame()
-
 
 # =========================================================
 # CONTINENT KEYWORDS
