@@ -7,7 +7,7 @@ from src.services.data_loader import prepare_all_data
 
 st.set_page_config(page_title="ระบบวิเคราะห์ความเชี่ยวชาญ", page_icon="🔍")
 
-STORAGE_PATH = os.path.join("storage", "raw_data", "data_api.csv")
+STORAGE_PATH = os.path.join("FrontIII/storage", "raw_data", "data_api.csv")
 
 home_page = st.Page(
     "pages/main.py",
