@@ -429,8 +429,19 @@ for i, (_, row) in enumerate(page_data.iterrows()):
 # =========================
 # 👤 MODAL FUNCTION
 # =========================
-if st.session_state.selected_author:
-    author_modal(df)
+# ✅ เปิด modal เฉพาะตอนมี selected_author
+if st.session_state.get("selected_author") is not None:
+
+    # ✅ copy ค่าออกมาก่อน
+    selected_author = st.session_state.selected_author
+
+    # ✅ reset state ทันที
+    # กัน modal reopen เองเวลา rerun
+    st.session_state.selected_author = None
+
+    # ✅ เปิด modal
+    author_modal(selected_author)
+
 
 # =========================
 # 📊 TABLE
