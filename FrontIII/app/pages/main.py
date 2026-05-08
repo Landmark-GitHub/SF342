@@ -596,7 +596,7 @@ def render_top_matches(top_df: pd.DataFrame, filtered_df: pd.DataFrame) -> None:
 
 
 def render_ai_matching(df_filtered: pd.DataFrame, summary_df: pd.DataFrame) -> None:
-    st.title("ระบบเทียบ Taxonomy")
+    st.title("เทียบ Taxonomy")
     user_idea = st.text_area(
         "เนื้อหางานวิจัยของคุณ",
         placeholder="เช่น งานวิจัยเรื่องการใช้ AI วิเคราะห์โรคพืชจากภาพถ่าย...",
