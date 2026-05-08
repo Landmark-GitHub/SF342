@@ -323,22 +323,84 @@ if search:
     st.session_state.page = 1
 
 
+# # =========================
+# # 📄 PAGINATION
+# # =========================
+# page_size = 16
+# total_pages = max(math.ceil(len(filtered.groupby("author_name")) / page_size), 1)
+# page = st.number_input(f"หน้า", 1, total_pages, value=st.session_state.page)
+# st.session_state.page = page
+# # แสดงข้อความบอกจำนวนหน้าและรายการ
+# st.markdown(f"""
+#     <div style='text-align: right; color: #64748B; font-size: 14px;'>
+#         หน้า {page} จากทั้งหมด {total_pages} หน้า
+#         <br>(รวม {len(filtered)} รายการ)
+#     </div>
+# """, unsafe_allow_html=True)
+# st.session_state.page = page
+# page_data = filtered.iloc[(page - 1) * page_size : page * page_size].groupby("author_name").first().reset_index()
+
+
 # =========================
 # 📄 PAGINATION
 # =========================
+
 page_size = 16
-total_pages = max(math.ceil(len(filtered) / page_size), 1)
-page = st.number_input(f"หน้า", 1, total_pages, value=st.session_state.page)
+
+# จำนวนคนทั้งหมด
+total_people = filtered["author_name"].nunique()
+
+# จำนวนหน้า
+total_pages = max(
+    math.ceil(total_people / page_size),
+    1
+)
+
+# current page
+page = st.number_input(
+    "หน้า",
+    min_value=1,
+    max_value=total_pages,
+    value=st.session_state.page,
+    step=1
+)
+
 st.session_state.page = page
-# แสดงข้อความบอกจำนวนหน้าและรายการ
-st.markdown(f"""
+
+# =========================
+# GROUP AUTHORS
+# =========================
+
+grouped_data = (
+    filtered
+    .groupby("author_name")
+    .first()
+    .reset_index()
+)
+
+# pagination
+start_idx = (page - 1) * page_size
+end_idx = page * page_size
+
+page_data = grouped_data.iloc[start_idx:end_idx]
+
+# จำนวนคนที่กำลังแสดง
+showing_people = len(page_data)
+
+# =========================
+# INFO
+# =========================
+
+st.markdown(
+    f"""
     <div style='text-align: right; color: #64748B; font-size: 14px;'>
-        หน้า {page} จากทั้งหมด {total_pages} หน้า
-        <br>(รวม {len(filtered)} รายการ)
+        แสดง {showing_people} คน
+        <br>
+        จากทั้งหมด {total_people} คน
     </div>
-""", unsafe_allow_html=True)
-st.session_state.page = page
-page_data = filtered.iloc[(page - 1) * page_size : page * page_size].groupby("author_name").first().reset_index()
+    """,
+    unsafe_allow_html=True
+)
 
 
 # =========================
