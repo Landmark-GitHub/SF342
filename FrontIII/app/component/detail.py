@@ -295,7 +295,6 @@ def author_modal(df, selected_author):
 
     st.markdown("")
     if st.button("✖ ปิด", use_container_width=True):
-        st.session_state.selected_author = None
         st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
