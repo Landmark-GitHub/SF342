@@ -323,23 +323,6 @@ if search:
     st.session_state.page = 1
 
 
-# # =========================
-# # 📄 PAGINATION
-# # =========================
-# page_size = 16
-# total_pages = max(math.ceil(len(filtered.groupby("author_name")) / page_size), 1)
-# page = st.number_input(f"หน้า", 1, total_pages, value=st.session_state.page)
-# st.session_state.page = page
-# # แสดงข้อความบอกจำนวนหน้าและรายการ
-# st.markdown(f"""
-#     <div style='text-align: right; color: #64748B; font-size: 14px;'>
-#         หน้า {page} จากทั้งหมด {total_pages} หน้า
-#         <br>(รวม {len(filtered)} รายการ)
-#     </div>
-# """, unsafe_allow_html=True)
-# st.session_state.page = page
-# page_data = filtered.iloc[(page - 1) * page_size : page * page_size].groupby("author_name").first().reset_index()
-
 
 # =========================
 # 📄 PAGINATION
@@ -457,8 +440,9 @@ st.download_button(
 )
 
 
+
 def render_taxonomy_cards(summary_df: pd.DataFrame, df_filtered: pd.DataFrame) -> None:
-    st.markdown("### 🌳 แผนผัง Taxonomy ความเชี่ยวชาญ")
+    st.markdown("แผนผัง Taxonomy ความเชี่ยวชาญ")
     if summary_df.empty:
         st.info("ไม่พบ taxonomy สำหรับแสดงผล")
         return
@@ -557,84 +541,280 @@ def calculate_similarity(query_text: str, taxonomy_texts: List[str]) -> Optional
     return sim
 
 
+# def render_top_matches(top_df: pd.DataFrame, filtered_df: pd.DataFrame) -> None:
+#     st.markdown("ลการจับคู่ Taxonomy")
+#     cols = st.columns(min(3, max(1, len(top_df))))
+#     for idx, (_, row) in enumerate(top_df.iterrows()):
+#         with cols[idx % len(cols)]:
+#             confidence = float(row["similarity"]) * 100
+#             st.markdown(
+#                 f"""
+#                 <div class="glass-card">
+#                     <div class="taxonomy-title">{row['subfield_name']}</div>
+#                     <div><span class="meta-badge">{row['l1_field']}</span><span class="meta-badge">{row['l2_domain']}</span></div>
+#                     <div>Taxonomy: <b>{row['taxonomy_id']}</b></div>
+#                     <div>ความมั่นใจ: <b>{confidence:.2f}%</b></div>
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+
+#     st.markdown("นกวิจัยที่เกี่ยวข้อง")
+#     match_ids = top_df["taxonomy_id"].tolist()
+#     recs = (
+#         filtered_df[filtered_df["taxonomy_id"].isin(match_ids)]
+#         .sort_values(["expertise_score", "paper_count"], ascending=False)
+#         .drop_duplicates(subset=["author_id"])
+#         .head(12)
+#     )
+#     if recs.empty:
+#         st.warning("ยังไม่พบนักวิจัยที่เกี่ยวข้องในเงื่อนไขตัวกรองปัจจุบัน")
+#         return
+
+#     for i, (_, r) in enumerate(recs.iterrows()):
+#         c1, c2 = st.columns([4, 1])
+#         with c1:
+#             st.markdown(
+#                 f"**{r.get('author_name', '-')}** | {r.get('subfield_name', '-')} | "
+#                 f"Expertise `{float(r.get('expertise_score', 0.0)):.3f}`"
+#             )
+#             with st.expander(f"ดู Evidence: {r.get('author_name', '-')}"):
+#                 for title in parse_list(r.get("evidence_titles"))[:8]:
+#                     st.markdown(f"- {title}")
+#         with c2:
+#             if st.button("ดูข้อมูล", key=f"ai_modal_{i}", use_container_width=True):
+#                 render_researcher_modal(r)
+
+
+# def render_ai_matching(df_filtered: pd.DataFrame, summary_df: pd.DataFrame) -> None:
+#     st.title("เทียบ Taxonomy")
+#     user_idea = st.text_area(
+#         "เนื้อหางานวิจัยของคุณ",
+#         placeholder="เช่น งานวิจัยเรื่องการใช้ AI วิเคราะห์โรคพืชจากภาพถ่าย...",
+#         height=130,
+#     )
+#     run = st.button("🔍 วิเคราะห์งานวิจัย", type="primary", use_container_width=True)
+#     if not run:
+#         return
+#     if not user_idea.strip():
+#         st.warning("กรุณากรอกแนวคิดวิจัยก่อนวิเคราะห์")
+#         return
+
+#     taxonomy_texts = (
+#         summary_df["l1_field"].fillna("").astype(str)
+#         + " | "
+#         + summary_df["l2_domain"].fillna("").astype(str)
+#         + " | "
+#         + summary_df["subfield_name"].fillna("").astype(str)
+#     ).tolist()
+#     with st.spinner("กำลังวิเคราะห์ความใกล้เคียงด้วย embedding similarity..."):
+#         sim = calculate_similarity(user_idea, taxonomy_texts)
+
+#     if sim is None:
+#         st.error("ไม่สามารถโหลด sentence-transformers ได้ในสภาพแวดล้อมนี้")
+#         return
+
+#     ranked = summary_df.copy()
+#     ranked["similarity"] = sim
+#     top_df = ranked.sort_values("similarity", ascending=False).head(3)
+#     render_top_matches(top_df, df_filtered)
+
 def render_top_matches(top_df: pd.DataFrame, filtered_df: pd.DataFrame) -> None:
-    st.markdown("#### ผลการจับคู่ Taxonomy")
-    cols = st.columns(min(3, max(1, len(top_df))))
+    st.markdown(" Taxonomy ที่ตรงกับงานของคุณที่สุด")
+
+    tab_labels = []
     for idx, (_, row) in enumerate(top_df.iterrows()):
-        with cols[idx % len(cols)]:
-            confidence = float(row["similarity"]) * 100
+        confidence = float(row["similarity"]) * 100
+        emoji = "🟢" if confidence > 70 else "🟡" if confidence > 40 else "🔴"
+        tab_labels.append(f"{emoji} #{idx+1} {str(row['subfield_name'])[:25]}")
+
+    tabs = st.tabs(tab_labels)
+
+    for tab_idx, (tab, (_, tax_row)) in enumerate(zip(tabs, top_df.iterrows())):
+        with tab:
+            confidence = float(tax_row["similarity"]) * 100
+            color = "#2ecc71" if confidence > 70 else "#f1c40f" if confidence > 40 else "#e74c3c"
+
             st.markdown(
                 f"""
-                <div class="glass-card">
-                    <div class="taxonomy-title">{row['subfield_name']}</div>
-                    <div><span class="meta-badge">{row['l1_field']}</span><span class="meta-badge">{row['l2_domain']}</span></div>
-                    <div>Taxonomy: <b>{row['taxonomy_id']}</b></div>
-                    <div>ความมั่นใจ: <b>{confidence:.2f}%</b></div>
+                <div style="
+                    background: rgba(255,255,255,0.04);
+                    border-left: 4px solid {color};
+                    border-radius: 8px;
+                    padding: 10px 15px;
+                    margin-bottom: 16px;
+                    display: flex;
+                    gap: 20px;
+                    align-items: center;
+                ">
+                    <span style="font-weight:bold;">{tax_row['subfield_name']}</span>
+                    <span style="opacity:0.6; font-size:0.85rem;">{tax_row['l1_field']} › {tax_row['l2_domain']}</span>
+                    <span style="margin-left:auto; color:{color}; font-weight:bold;">ความมั่นใจ {confidence:.1f}%</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-    st.markdown("#### นักวิจัยที่เกี่ยวข้อง")
+            recs = (
+                filtered_df[filtered_df["taxonomy_id"] == tax_row["taxonomy_id"]]
+                .sort_values(["expertise_score", "paper_count"], ascending=False)
+                .drop_duplicates(subset=["author_id"])
+                .head(9)
+            )
+
+            if recs.empty:
+                st.info("ยังไม่พบนักวิจัยใน Taxonomy นี้")
+                continue
+
+            COLS = 3
+            rows_list = list(recs.iterrows())
+            for row_start in range(0, len(rows_list), COLS):
+                cols = st.columns(COLS, gap="medium")
+                for col_idx, (_, r) in enumerate(rows_list[row_start : row_start + COLS]):
+                    with cols[col_idx]:
+                        score = float(r.get("expertise_score", 0.0))
+                        papers = int(r.get("paper_count", 0))
+                        name = r.get("author_name", "-")
+                        subfield = str(r.get("subfield_name", "-"))
+                        bar_pct = min(int(score * 100), 100)
+
+                        # ✅ key ใช้ tab_idx + row_start + col_idx แทน taxonomy_id
+                        btn_key = f"grid_modal_t{tab_idx}_r{row_start}_c{col_idx}"
+
+                        st.markdown(
+                            f"""
+                            <div style="
+                                background: rgba(255,255,255,0.05);
+                                border-radius: 10px;
+                                padding: 14px;
+                                margin-bottom: 4px;
+                                border: 1px solid rgba(255,255,255,0.08);
+                            ">
+                                <div style="font-weight:bold; font-size:0.95rem; margin-bottom:4px;">👤 {name}</div>
+                                <div style="font-size:0.78rem; opacity:0.6; margin-bottom:8px;">{subfield[:30]}</div>
+                                <div style="font-size:0.82rem; margin-bottom:6px;">📄 {papers} papers</div>
+                                <div style="font-size:0.78rem; margin-bottom:4px; opacity:0.7;">Expertise</div>
+                                <div style="background:rgba(255,255,255,0.1); border-radius:4px; height:6px; margin-bottom:8px;">
+                                    <div style="background:{color}; width:{bar_pct}%; height:6px; border-radius:4px;"></div>
+                                </div>
+                                <div style="font-size:0.85rem; font-weight:bold; color:{color};">{score:.3f}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                        # ✅ set session_state แล้ว rerun
+                        if st.button("ดูโปรไฟล์", key=btn_key, use_container_width=True):
+                            st.session_state["modal_author_row"] = r.to_dict()
+                            st.rerun()
+                            
+                            
+                            
+def render_top_matches(top_df: pd.DataFrame, filtered_df: pd.DataFrame) -> None:
+    """แสดงผล Taxonomy ที่มีความใกล้เคียงที่สุด 3 อันดับแรก พร้อมปุ่มเปิด Modal"""
+    st.markdown(" Taxonomy ที่ตรงกับงานของคุณที่สุด")
+    
+    cols = st.columns(3)
+    for idx, (_, row) in enumerate(top_df.iterrows()):
+        with cols[idx]:
+            confidence = float(row["similarity"]) * 100
+            color = "#2ecc71" if confidence > 70 else "#f1c40f" if confidence > 40 else "#e74c3c"
+            
+            st.markdown(
+                f"""
+                <div style="background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 15px; 
+                            border-left: 5px solid {color}; height: 100%; margin-bottom: 10px;">
+                    <div style="font-size: 0.8rem; color: #888;">RANK #{idx+1}</div>
+                    <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">{row['taxonomy_id']}</div>
+                    <div style="font-size: 0.85rem; opacity: 0.8;">{row['l1_field']}</div>
+                    <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 8px;">{row['l2_domain']}</div>
+                    <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 8px;">{row['subfield_name']}</div>
+                    <div style="font-size: 0.9rem;">ความมั่นใจ: <b style="color:{color};">{confidence:.2f}%</b></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("---")
+    st.markdown("นักวิจัยที่แนะนำตามความเชี่ยวชาญ")
+    
     match_ids = top_df["taxonomy_id"].tolist()
     recs = (
         filtered_df[filtered_df["taxonomy_id"].isin(match_ids)]
         .sort_values(["expertise_score", "paper_count"], ascending=False)
         .drop_duplicates(subset=["author_id"])
-        .head(12)
+        .head(10)
     )
+
     if recs.empty:
-        st.warning("ยังไม่พบนักวิจัยที่เกี่ยวข้องในเงื่อนไขตัวกรองปัจจุบัน")
+        st.warning("⚠️ ไม่พบนกวิจัยในระบบที่ตรงกับ Taxonomy นี้")
         return
 
+    # ลูปแสดงนักวิจัย
     for i, (_, r) in enumerate(recs.iterrows()):
-        c1, c2 = st.columns([4, 1])
-        with c1:
-            st.markdown(
-                f"**{r.get('author_name', '-')}** | {r.get('subfield_name', '-')} | "
-                f"Expertise `{float(r.get('expertise_score', 0.0)):.3f}`"
-            )
-            with st.expander(f"ดู Evidence: {r.get('author_name', '-')}"):
-                for title in parse_list(r.get("evidence_titles"))[:8]:
-                    st.markdown(f"- {title}")
-        with c2:
-            if st.button("ดูข้อมูล", key=f"ai_modal_{i}", use_container_width=True):
-                render_researcher_modal(r)
+        with st.container():
+            c1, c2 = st.columns([4, 1])
+            with c1:
+                st.markdown(
+                    f"**{r.get('author_name', '-')}**  \n"
+                    f"`{r.get('subfield_name', '-')}` | Expertise: **{float(r.get('expertise_score', 0.0)):.3f}** | Papers: **{int(r.get('paper_count', 0))}**"
+                )
+            with c2:
+                # แก้ไข: เรียกใช้ render_researcher_modal(r) ตรงๆ เมื่อกดปุ่ม
+                if st.button("ดูโปรไฟล์", key=f"ai_res_btn_{i}", use_container_width=True):
+                    render_researcher_modal(r) # ฟังก์ชันแสดง Modal ที่คุณมีอยู่
+            
+            with st.expander("ดูผลงานที่เกี่ยวข้อง"):
+                titles = parse_list(r.get("evidence_titles"))
+                for t in titles[:5]:
+                    st.markdown(f"- {t}")
+            
+            st.markdown('<div style="margin-bottom: 15px;"></div>', unsafe_allow_html=True)
 
 
 def render_ai_matching(df_filtered: pd.DataFrame, summary_df: pd.DataFrame) -> None:
-    st.title("เทียบ Taxonomy")
+    """หน้าหลัก AI Matching พร้อมระบบเก็บสถานะป้องกันข้อมูลหาย"""
+    st.markdown("ค้นหาTaxonomy")
+    
+    # ใช้ Session State เพื่อเก็บผลลัพธ์การค้นหา
+    if "ai_search_results" not in st.session_state:
+        st.session_state.ai_search_results = None
+
     user_idea = st.text_area(
-        "เนื้อหางานวิจัยของคุณ",
-        placeholder="เช่น งานวิจัยเรื่องการใช้ AI วิเคราะห์โรคพืชจากภาพถ่าย...",
-        height=130,
+        "รายละเอียดงานวิจัย / ความสนใจ",
+        placeholder="กรอกแนวคิดงานวิจัยที่นี่...",
+        height=150,
+        key="ai_query_input"
     )
-    run = st.button("🔍 วิเคราะห์งานวิจัย", type="primary", use_container_width=True)
-    if not run:
-        return
-    if not user_idea.strip():
-        st.warning("กรุณากรอกแนวคิดวิจัยก่อนวิเคราะห์")
-        return
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("✨ วิเคราะห์ความใกล้เคียง", type="primary", use_container_width=True):
+            if not user_idea.strip():
+                st.warning("กรุณากรอกข้อมูลก่อนวิเคราะห์")
+            else:
+                taxonomy_texts = (
+                    summary_df["l1_field"].fillna("").astype(str) + " | " +
+                    summary_df["l2_domain"].fillna("").astype(str) + " | " +
+                    summary_df["subfield_name"].fillna("").astype(str)
+                ).tolist()
 
-    taxonomy_texts = (
-        summary_df["l1_field"].fillna("").astype(str)
-        + " | "
-        + summary_df["l2_domain"].fillna("").astype(str)
-        + " | "
-        + summary_df["subfield_name"].fillna("").astype(str)
-    ).tolist()
-    with st.spinner("กำลังวิเคราะห์ความใกล้เคียงด้วย embedding similarity..."):
-        sim = calculate_similarity(user_idea, taxonomy_texts)
+                with st.status("🚀 กำลังวิเคราะห์...", expanded=False) as status:
+                    sim = calculate_similarity(user_idea, taxonomy_texts)
+                    if sim is not None:
+                        ranked = summary_df.copy()
+                        ranked["similarity"] = sim
+                        # เก็บผลลัพธ์ลงใน session_state
+                        st.session_state.ai_search_results = ranked.sort_values("similarity", ascending=False).head(3)
+                        status.update(label="วิเคราะห์เสร็จสิ้น!", state="complete")
+                    else:
+                        st.error("Embedding Error")
 
-    if sim is None:
-        st.error("ไม่สามารถโหลด sentence-transformers ได้ในสภาพแวดล้อมนี้")
-        return
-
-    ranked = summary_df.copy()
-    ranked["similarity"] = sim
-    top_df = ranked.sort_values("similarity", ascending=False).head(3)
-    render_top_matches(top_df, df_filtered)
-
+    # ถ้ามีข้อมูลใน session_state ให้แสดงผลลัพธ์ (ทำให้เวลาเปิด Modal แล้วข้อมูลไม่หาย)
+    if st.session_state.ai_search_results is not None:
+        render_top_matches(st.session_state.ai_search_results, df_filtered)
+        
+        
 with st.spinner("กำลังเตรียมข้อมูล taxonomy และ researcher..."):
     tax_df = load_taxonomy_data()
     summary_df = prepare_taxonomy_summary(df, tax_df)
